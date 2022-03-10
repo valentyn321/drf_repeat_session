@@ -1,5 +1,7 @@
 from rest_framework import serializers
 from rest_framework.reverse import reverse
+
+from api.serializers import UserPublicSerializer
 from .models import Product
 from .validators import validate_title
 
@@ -11,11 +13,12 @@ class ProductSerialzier(serializers.ModelSerializer):
         view_name="product-detail",
     )
     title = serializers.CharField(validators=[validate_title])
+    owner = UserPublicSerializer(source="user", read_only=True)
 
     class Meta:
         model = Product
         fields = [
-            "user",
+            "owner",
             "url",
             "edit_url",
             "pk",
