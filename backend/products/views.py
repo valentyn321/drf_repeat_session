@@ -1,3 +1,4 @@
+from urllib import request
 from rest_framework import generics, mixins, authentication
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
@@ -34,6 +35,10 @@ class ProductListCreateAPIView(
         if content is None:
             content = title
         serializer.save(content=content)
+
+    def get_queryset(self, *args, **kwargs):
+        print(self.request.user)
+        return super().get_queryset(*args, **kwargs)
 
 
 class ProductListAPIView(
