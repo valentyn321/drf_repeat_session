@@ -1,15 +1,19 @@
-from tracemalloc import get_object_traceback
-from rest_framework import generics
+from rest_framework import generics, mixins, authentication
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
 from django.shortcuts import get_object_or_404
 
+from api.mixins import StaffEditorPermissionMixin
+
 from .models import Product
 from .serializers import ProductSerialzier
 
 
-class ProductListCreateAPIView(generics.ListCreateAPIView):
+class ProductListCreateAPIView(
+    StaffEditorPermissionMixin,
+    generics.ListCreateAPIView,
+):
     """
     GET method - returns a list of Products
     POST method  - creates a new Product instance
@@ -17,6 +21,9 @@ class ProductListCreateAPIView(generics.ListCreateAPIView):
 
     queryset = Product.objects.all()
     serializer_class = ProductSerialzier
+    authentication_classes = [
+        authentication.SessionAuthentication,
+    ]
 
     def perform_create(self, serializer):
         # also, very common usage is sending Django signals to db
@@ -29,7 +36,10 @@ class ProductListCreateAPIView(generics.ListCreateAPIView):
         serializer.save(content=content)
 
 
-class ProductListAPIView(generics.ListAPIView):
+class ProductListAPIView(
+    StaffEditorPermissionMixin,
+    generics.ListAPIView,
+):
     queryset = Product.objects.all()
     serializer_class = ProductSerialzier
 
@@ -41,7 +51,10 @@ class ProductDetailAPIView(generics.RetrieveAPIView):
     # lookup_field = 'pk'
 
 
-class ProductUpdateAPIView(generics.UpdateAPIView):
+class ProductUpdateAPIView(
+    StaffEditorPermissionMixin,
+    generics.UpdateAPIView,
+):
     queryset = Product.objects.all()
     serializer_class = ProductSerialzier
     lookup_field = "pk"
@@ -52,7 +65,10 @@ class ProductUpdateAPIView(generics.UpdateAPIView):
             instance.content = instance.title
 
 
-class ProductDestroyAPIView(generics.DestroyAPIView):
+class ProductDestroyAPIView(
+    StaffEditorPermissionMixin,
+    generics.DestroyAPIView,
+):
     queryset = Product.objects.all()
     serializer_class = ProductSerialzier
     lookup_field = "pk"
@@ -60,6 +76,30 @@ class ProductDestroyAPIView(generics.DestroyAPIView):
     def perform_destroy(self, instance):
         # instance
         super().perform_destroy(instance)
+
+
+class ProductMixinView(
+    mixins.ListModelMixin,
+    mixins.RetrieveModelMixin,
+    mixins.CreateModelMixin,
+    generics.GenericAPIView,
+):
+    """
+    currently isn't using anywhere, just for an example,
+    how to create class-based views with own functionality
+    """
+
+    queryset = Product.objects.all()
+    serializer_class = ProductSerialzier
+    lookup_field = "pk"
+
+    def get(self, request, *args, **kwargs):
+        if kwargs.get("pk") is not None:
+            return self.retrieve(request, *args, **kwargs)
+        return self.list(request, *args, **kwargs)
+
+    def post(self, request, *args, **kwargs):
+        return self.create(request, *args, **kwargs)
 
 
 @api_view(["GET", "POST"])
